@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>Vibenopoles</title>
+    <link rel="manifest" href="/vibenopoles/manifest.json">
+    <link href="/vibenopoles/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div id="game" role="region" aria-label="Jogo Vibenopoles">
+        <header>
+            <h1>Vibenopoles</h1>
+            <a href="/vibenopoles/settings.html" role="button" aria-label="Abrir configurações">Configurações</a>
+        </header>
+        <div id="character" role="region" aria-label="Estado do Personagem">
+            <h2>Personagem</h2>
+            <p id="character-stats" aria-live="polite">
+                Idade: <span id="age">0</span> | Saúde: <span id="health">100</span> ❤️ | 
+                Humor: <span id="mood">50</span> 😊 | Fome: <span id="hunger">50</span> 🍽️ | 
+                Sede: <span id="thirst">50</span> 💧 | Energia: <span id="energy">100</span> ⚡
+            </p>
+            <p id="attributes" aria-live="polite">
+                Força: <span id="strength">10</span> 💪 | Vigor: <span id="stamina">10</span> 🏃 | 
+                Agilidade: <span id="agility">10</span> 🦶
+            </p>
+            <p id="resources" aria-live="polite">
+                Moedas: <span id="coins">0</span> 💰 | Seguidores: <span id="followers">0</span> 📈
+            </p>
+        </div>
+        <div id="calendar" role="region" aria-label="Calendário">
+            <h2>Calendário</h2>
+            <p id="calendar-info" aria-live="polite">
+                Dia: <span id="day">1</span> | Semana: <span id="week">1</span> | 
+                Mês: <span id="month">1</span> | Ano: <span id="year">1</span> | 
+                Estação: <span id="season">Primavera</span> 🌷 | Clima: <span id="weather">Sol</span> ☀️
+            </p>
+        </div>
+        <div id="locations" role="region" aria-label="Locais">
+            <h2>Locais</h2>
+            <ul id="location-list" role="list">
+                <li><button onclick="visitLocation('Lar Familiar')" aria-label="Visitar Lar Familiar">Lar Familiar 🏠</button></li>
+                <li><button onclick="visitLocation('Shopping')" aria-label="Visitar Shopping">Shopping 🏬</button></li>
+                <li><button onclick="visitLocation('Fazenda')" aria-label="Visitar Fazenda">Fazenda 🌾</button></li>
+                <li><button onclick="visitLocation('Parque')" aria-label="Visitar Parque">Parque 🌳</button></li>
+                <li><button onclick="visitLocation('Creche')" aria-label="Visitar Creche">Creche 🏫</button></li>
+            </ul>
+        </div>
+        <div id="events" role="region" aria-label="Eventos">
+            <h2>Eventos</h2>
+            <ul id="event-list" role="list" aria-live="polite">
+                <!-- Eventos dinâmicos -->
+            </ul>
+        </div>
+        <div id="missions" role="region" aria-label="Missões">
+            <h2>Missões</h2>
+            <ul id="mission-list" role="list" aria-live="polite">
+                <!-- Missões dinâmicas -->
+            </ul>
+        </div>
+        <div id="cutscene" role="dialog" aria-label="Cutscene" hidden>
+            <h2>Cutscene</h2>
+            <p id="cutscene-text" aria-live="assertive"></p>
+            <button onclick="skipCutscene()" aria-label="Continuar cutscene">Continuar</button>
+        </div>
+        <div id="dialogue" role="dialog" aria-label="Diálogo" hidden>
+            <h2>Diálogo</h2>
+            <p id="dialogue-text" aria-live="assertive"></p>
+            <ul id="dialogue-options" role="menu" aria-label="Opções de diálogo"></ul>
+        </div>
+        <div id="notifications" role="alert" aria-live="assertive"></div>
+    </div>
+    <script>
+        const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/vibenopoles';
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register(`${BASE_PATH}/serviceWorker.js`)
+                    .then((reg) => console.log('Service Worker registrado', reg))
+                    .catch((err) => console.error('Erro ao registrar Service Worker', err));
+            });
+        }
+    </script>
+    <script src="/vibenopoles/js/main.js"></script>
+    <script src="/vibenopoles/js/character.js"></script>
+    <script src="/vibenopoles/js/family.js"></script>
+    <script src="/vibenopoles/js/npcs.js"></script>
+    <script src="/vibenopoles/js/locations.js"></script>
+    <script src="/vibenopoles/js/calendar.js"></script>
+    <script src="/vibenopoles/js/education.js"></script>
+    <script src="/vibenopoles/js/relationships.js"></script>
+    <script src="/vibenopoles/js/farm.js"></script>
+    <script src="/vibenopoles/js/home.js"></script>
+    <script src="/vibenopoles/js/events.js"></script>
+    <script src="/vibenopoles/js/cutscenes.js"></script>
+    <script src="/vibenopoles/js/dialogues.js"></script>
+    <script src="/vibenopoles/js/missions.js"></script>
+    <script src="/vibenopoles/js/trade.js"></script>
+    <script src="/vibenopoles/js/achievements.js"></script>
+    <script src="/vibenopoles/js/utils.js"></script>
+    <script src="/vibenopoles/js/accessibility.js"></script>
+    <script src="/vibenopoles/js/settings.js"></script>
+</body>
+</html>
