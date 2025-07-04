@@ -1,0 +1,201 @@
+/* Reset básico para consistência */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Estilo geral do corpo */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #000;
+    color: #fff;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+/* Estilo de alto contraste para acessibilidade */
+.high-contrast {
+    background-color: #000;
+    color: #fff;
+    /* Aumenta contraste em elementos específicos */
+    button, a[role="button"] {
+        background-color: #fff;
+        color: #000;
+        border: 2px solid #fff;
+    }
+}
+
+/* Contêiner principal do jogo */
+#game, #settings {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Cabeçalho */
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    font-size: 2em;
+}
+
+/* Botão de configurações e voltar */
+header a[role="button"] {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #333;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+header a[role="button"]:focus {
+    outline: 2px solid #fff;
+}
+
+/* Seções (personagem, calendário, locais, eventos, missões, configurações) */
+#character, #calendar, #locations, #events, #missions, #settings-form {
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+/* Formulário de configurações */
+#settings-form label {
+    display: block;
+    margin: 10px 0 5px;
+}
+
+#settings-form input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+#settings-form button[type="submit"] {
+    margin-top: 15px;
+}
+
+/* Estilo para listas (locais, eventos, missões, opções de diálogo) */
+ul[role="list"], ul[role="menu"] {
+    list-style: none;
+}
+
+ul[role="list"] li, ul[role="menu"] li {
+    margin: 10px 0;
+}
+
+/* Botões */
+button, a[role="button"] {
+    padding: 8px 16px;
+    background-color: #555;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+button:hover, a[role="button"]:hover {
+    background-color: #777;
+}
+
+button:focus, a[role="button"]:focus {
+    outline: 2px solid #fff;
+}
+
+/* Estilo para status do personagem */
+#character-stats, #attributes, #resources {
+    margin: 10px 0;
+}
+
+#character-stats span, #attributes span, #resources span {
+    font-weight: bold;
+}
+
+/* Estilo para o calendário */
+#calendar-info {
+    margin: 10px 0;
+}
+
+#calendar-info span {
+    font-weight: bold;
+}
+
+/* Modais de cutscene e diálogo */
+#cutscene, #dialogue {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #222;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 90%;
+    width: 400px;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+#cutscene[hidden], #dialogue[hidden] {
+    display: none;
+}
+
+#cutscene-text, #dialogue-text {
+    margin-bottom: 20px;
+}
+
+/* Notificações */
+#notifications {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    max-width: 300px;
+}
+
+/* Tema dia/noite */
+.day {
+    background-color: #f0f0f0;
+    color: #000;
+}
+
+.night {
+    background-color: #000;
+    color: #fff;
+}
+
+/* Estilo para emojis com acessibilidade */
+span[aria-label] {
+    display: inline-block;
+    width: 1.2em;
+    text-align: center;
+}
+
+/* Responsividade para dispositivos móveis */
+@media (max-width: 600px) {
+    #game, #settings {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.5em;
+    }
+
+    h2 {
+        font-size: 1.2em;
+    }
+
+    button, a[role="button"] {
+        padding: 6px 12px;
+        font-size: 0.9em;
+    }
+
+    #cutscene, #dialogue {
+        width: 90%;
+    }
+}
