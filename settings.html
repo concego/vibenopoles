@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>Configurações - Vibenopoles</title>
+    <link rel="manifest" href="/vibenopoles/manifest.json">
+    <link href="/vibenopoles/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div id="settings" role="region" aria-label="Configurações do Jogo">
+        <header>
+            <h1>Configurações</h1>
+            <a href="/vibenopoles/index.html" role="button" aria-label="Voltar ao jogo">Voltar</a>
+        </header>
+        <form id="settings-form" role="form" aria-label="Formulário de Configurações">
+            <label for="contrast">Alto Contraste:</label>
+            <input type="checkbox" id="contrast" aria-label="Ativar alto contraste">
+            <label for="sound">Sons:</label>
+            <input type="checkbox" id="sound" aria-label="Ativar sons" disabled>
+            <button type="submit" onclick="saveSettings()" aria-label="Salvar configurações">Salvar</button>
+        </form>
+        <div id="notifications" role="alert" aria-live="assertive"></div>
+    </div>
+    <script>
+        const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/vibenopoles';
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register(`${BASE_PATH}/serviceWorker.js`)
+                    .then((reg) => console.log('Service Worker registrado', reg))
+                    .catch((err) => console.error('Erro ao registrar Service Worker', err));
+            });
+        }
+    </script>
+    <script src="/vibenopoles/js/settings.js"></script>
+    <script src="/vibenopoles/js/utils.js"></script>
+    <script src="/vibenopoles/js/accessibility.js"></script>
+</body>
+</html>
