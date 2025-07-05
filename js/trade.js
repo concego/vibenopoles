@@ -2,167 +2,122 @@
 const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/vibenopoles';
 
 // Importações
-import { loadFromLocalStorage, saveToLocalStorage, notify } from `${BASE_PATH}/js/utils.js`;
+import { loadFromLocalStorage, saveToLocalStorage, notify, debugLog, randomInt } from `${BASE_PATH}/js/utils.js`;
 import { addAriaLabels, handleKeyboardNavigation } from `${BASE_PATH}/js/accessibility.js`;
 
 // Inicializa o sistema de comércio
 export function initTrade(state) {
-    // Garantir que o estado do comércio existe
+    debugLog('Inicializando sistema de comércio', { state });
     state.trade = state.trade || {
-        inventory: [], // Ex.: [{ item: "Trigo", quantity: 10, value: 5 }]
-        market: [
-            { item: "Trigo", value: 5, stock: 20 },
-            { item: "Ração", value: 10, stock: 15 },
-            { item: "Sementes", value: 8, stock: 30 }
-        ],
-        lastTrade: 0 // Timestamp da última transação
+        market: {
+            'Wheat': { price: randomInt(5, 10), stock: randomInt(10, 20) },
+            'Corn': { price: randomInt(8, 15), stock: randomInt(5, 15) },
+            'WheatSeed': { price: randomInt(2, 5), stock: randomInt(20, 30) },
+            'CornSeed': { price: randomInt(3, 7), stock: randomInt(15, 25) }
+        }
     };
 
-    // Atualizar interface
-    updateTradeUI(state);
+    updateTrade(state);
+    saveToLocalStorage(state);
+}
+
+// Atualiza o sistema de comércio com base no calendário
+export function updateTrade(state) {
+    debugLog('Atualizando sistema de comércio', { dayCount: state.calendar.dayCount });
+    const gameContainer = document.getElementById('game');
+    if (!gameContainer) {
+        debugLog('Erro: Contêiner #game não encontrado para comércio');
+        notify('⚠️ Erro: Contêiner do jogo não encontrado.', 'assertive');
+        return;
+    }
+
+    // Atualizar preços com base no dia
+    if (state.calendar.dayCount % 7 === 0) {
+        for (let item in state.trade.market) {
+            state.trade.market[item].price = randomInt(5, 15);
+            state.trade.market[item].stock = randomInt(5, 30);
+        }
+        debugLog('Preços e estoques do mercado atualizados', { market: state.trade.market });
+    }
+
+    const tradeSection = document.createElement('section');
+    tradeSection.id = 'trade';
+    tradeSection.setAttribute('role', 'region');
+    tradeSection.setAttribute('aria-label', 'Mercado');
+    tradeSection.innerHTML = `
+        <h2>Mercado 🛒</h2>
+        <p id="trade-info" aria-live="polite">
+            Trigo: ${state.trade.market['Wheat'].stock} unidades, $${state.trade.market['Wheat'].price}<br>
+            Milho: ${state.trade.market['Corn'].stock} unidades, $${state.trade.market['Corn'].price}<br>
+            Semente de Trigo: ${state.trade.market['WheatSeed'].stock} unidades, $${state.trade.market['WheatSeed'].price}<br>
+            Semente de Milho: ${state.trade.market['CornSeed'].stock} unidades, $${state.trade.market['CornSeed'].price}
+        </p>
+        <button onclick="buyItem('WheatSeed')" aria-label="Comprar semente de trigo">Comprar Semente de Trigo</button>
+        <button onclick="buyItem('CornSeed')" aria-label="Comprar semente de milho">Comprar Semente de Milho</button>
+        <button onclick="sellItem('Wheat')" aria-label="Vender trigo">Vender Trigo</button>
+        <button onclick="sellItem('Corn')" aria-label="Vender milho">Vender Milho</button>
+    `;
+
+    const existingSection = document.getElementById('trade');
+    if (existingSection) {
+        existingSection.replaceWith(tradeSection);
+        debugLog('Seção #trade substituída');
+    } else {
+        gameContainer.appendChild(tradeSection);
+        debugLog('Seção #trade adicionada ao #game');
+    }
 
     // Adicionar acessibilidade
     addAriaLabels();
     handleKeyboardNavigation();
 
-    // Salvar estado
     saveToLocalStorage(state);
 }
 
-// Atualiza a interface de comércio
-function updateTradeUI(state) {
-    const tradeSection = document.createElement('div');
-    tradeSection.id = 'trade';
-    tradeSection.setAttribute('role', 'region');
-    tradeSection.setAttribute('aria-label', 'Comércio');
-    tradeSection.innerHTML = `
-        <h2>Comércio 🏬</h2>
-        <h3>Inventário</h3>
-        <ul id="inventory-list" role="list" aria-live="polite">
-            ${state.trade.inventory.length > 0 ? 
-                state.trade.inventory.map(item => `
-                    <li>
-                        ${item.item}: ${item.quantity} (Valor: ${item.value} moedas)
-                        <button onclick="sellItem('${item.item}')" aria-label="Vender ${item.item}">Vender</button>
-                    </li>
-                `).join('') : 
-                '<li>Seu inventário está vazio.</li>'
-            }
-        </ul>
-        <h3>Mercado</h3>
-        <ul id="market-list" role="list" aria-live="polite">
-            ${state.trade.market.map(item => `
-                <li>
-                    ${item.item}: ${item.stock} (Valor: ${item.value} moedas)
-                    <button onclick="buyItem('${item.item}')" aria-label="Comprar ${item.item}">Comprar</button>
-                </li>
-            `).join('')}
-        </ul>
-    `;
-
-    // Substituir ou adicionar a seção na interface
-    const existingTradeSection = document.getElementById('trade');
-    if (existingTradeSection) {
-        existingTradeSection.replaceWith(tradeSection);
-    } else {
-        document.getElementById('game').appendChild(tradeSection);
-    }
-}
-
-// Função para comprar um item
-window.buyItem = function(itemName) {
+// Compra um item no mercado
+window.buyItem = function(item) {
     const state = loadFromLocalStorage();
-    if (state.locations.currentLocation !== 'Shopping') {
-        notify('⚠️ Vá para o Shopping para comprar itens.');
+    debugLog('Comprando item', { item });
+
+    if (!state.farm || !state.farm.inventory) {
+        debugLog('Erro: Inventário não inicializado');
+        notify('⚠️ Erro: Inventário não inicializado.', 'assertive');
         return;
     }
-    const marketItem = state.trade.market.find(i => i.item === itemName);
+
+    const marketItem = state.trade.market[item];
     if (!marketItem || marketItem.stock <= 0) {
-        notify(`⚠️ ${itemName} está fora de estoque.`);
-        return;
-    }
-    const cost = marketItem.value * (1 - state.education.skills.trading / 100); // Desconto por habilidade
-    if (state.resources.coins < cost) {
-        notify(`⚠️ Você precisa de ${cost.toFixed(2)} moedas para comprar ${itemName}.`);
+        debugLog('Erro: Item fora de estoque', { item });
+        notify(`⚠️ ${item} fora de estoque.`, 'assertive');
         return;
     }
 
-    state.resources.coins -= cost;
-    marketItem.stock -= 1;
-    const inventoryItem = state.trade.inventory.find(i => i.item === itemName);
-    if (inventoryItem) {
-        inventoryItem.quantity += 1;
-    } else {
-        state.trade.inventory.push({ item: itemName, quantity: 1, value: marketItem.value });
-    }
-    state.trade.lastTrade = Date.now();
+    state.farm.inventory.seeds[item] = (state.farm.inventory.seeds[item] || 0) + 1;
+    marketItem.stock--;
+    notify(`🛒 Comprou 1 ${item}!`, 'assertive');
+    debugLog('Item comprado', { item, stock: marketItem.stock, inventory: state.farm.inventory.seeds });
 
-    notify(`🛍️ Você comprou 1 ${itemName} por ${cost.toFixed(2)} moedas!`);
-    updateTradeUI(state);
-    saveToLocalStorage(state);
+    updateTrade(state);
 };
 
-// Função para vender um item
-window.sellItem = function(itemName) {
+// Vende um item no mercado
+window.sellItem = function(item) {
     const state = loadFromLocalStorage();
-    if (state.locations.currentLocation !== 'Shopping') {
-        notify('⚠️ Vá para o Shopping para vender itens.');
+    debugLog('Vendendo item', { item });
+
+    if (!state.farm || !state.farm.inventory || !state.farm.inventory.crops[item]) {
+        debugLog('Erro: Item não disponível no inventário', { item });
+        notify(`⚠️ Você não tem ${item} para vender.`, 'assertive');
         return;
     }
-    const inventoryItem = state.trade.inventory.find(i => i.item === itemName);
-    if (!inventoryItem || inventoryItem.quantity <= 0) {
-        notify(`⚠️ Você não tem ${itemName} para vender.`);
-        return;
+
+    state.farm.inventory.crops[item]--;
+    if (state.farm.inventory.crops[item] <= 0) {
+        delete state.farm.inventory.crops[item];
     }
+    state.trade.market[item].stock++;
+    notify(`💰 Vendeu 1 ${item}!`, 'assertive');
+    debugLog('Item vendido', { item, stock: state.trade.market[item].stock, inventory: state.farm.inventory.crops });
 
-    const revenue = inventoryItem.value * (1 + state.education.skills.trading / 100); // Bônus por habilidade
-    inventoryItem.quantity -= 1;
-    state.resources.coins += revenue;
-    state.trade.lastTrade = Date.now();
-
-    // Remover item do inventário se quantidade for 0
-    if (inventoryItem.quantity === 0) {
-        state.trade.inventory = state.trade.inventory.filter(i => i.item !== itemName);
-    }
-
-    // Reabastecer mercado
-    const marketItem = state.trade.market.find(i => i.item === itemName);
-    if (marketItem) {
-        marketItem.stock += 1;
-    }
-
-    notify(`💰 Você vendeu 1 ${itemName} por ${revenue.toFixed(2)} moedas!`);
-    updateTradeUI(state);
-    saveToLocalStorage(state);
-
-    // Atualizar missões relacionadas (ex.: entrega de Trigo)
-    checkMissionProgress(state, itemName);
+    updateTrade(state);
 };
-
-// Função para verificar progresso de missões
-function checkMissionProgress(state, itemName) {
-    const mission = state.missions.activeMissions.find(m => m.task.includes(itemName));
-    if (mission) {
-        mission.progress += 1;
-        if (mission.progress >= mission.goal) {
-            // Concluir missão
-            applyMissionRewards(state, mission);
-            state.missions.activeMissions = state.missions.activeMissions.filter(m => m.id !== mission.id);
-            state.missions.completedMissions.push({ id: mission.id, completedAt: Date.now() });
-            notify(`🎉 Missão concluída: ${mission.task}! Recompensas aplicadas.`);
-        } else {
-            notify(`📜 Progresso na missão ${mission.task}: ${mission.progress}/${mission.goal}`);
-        }
-        saveToLocalStorage(state);
-    }
-}
-
-// Função para aplicar recompensas de missão (reutilizada de missions.js)
-function applyMissionRewards(state, mission) {
-    if (mission.reward.coins) {
-        state.resources.coins = (state.resources.coins || 0) + mission.reward.coins;
-    }
-    if (mission.reward.farmingSkill) {
-        state.education.skills.farming = Math.min(100, state.education.skills.farming + mission.reward.farmingSkill);
-    }
-}

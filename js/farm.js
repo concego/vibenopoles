@@ -2,200 +2,128 @@
 const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/vibenopoles';
 
 // Importações
-import { loadFromLocalStorage, saveToLocalStorage, notify } from `${BASE_PATH}/js/utils.js`;
+import { loadFromLocalStorage, saveToLocalStorage, notify, debugLog, randomInt } from `${BASE_PATH}/js/utils.js`;
 import { addAriaLabels, handleKeyboardNavigation } from `${BASE_PATH}/js/accessibility.js`;
 
 // Inicializa o sistema de agricultura
 export function initFarm(state) {
-    // Garantir que o estado da fazenda existe
+    debugLog('Inicializando sistema de agricultura', { state });
     state.farm = state.farm || {
-        crops: [], // Ex.: [{ type: "Trigo", plantedAt: timestamp, growthTime: 3, progress: 0 }]
-        animals: [], // Ex.: [{ type: "Galinha", health: 100, lastFed: timestamp }]
-        tools: { hoe: 1, wateringCan: 1 }, // Nível das ferramentas
-        lastUpdate: Date.now()
+        plots: [], // Array de lotes: { crop: string, plantedDay: number, growthDays: number }
+        inventory: { seeds: {}, crops: {} }
     };
 
-    // Atualizar interface
-    updateFarmUI(state);
-
-    // Adicionar acessibilidade
-    addAriaLabels();
-    handleKeyboardNavigation();
-
-    // Salvar estado
+    updateFarm(state);
     saveToLocalStorage(state);
 }
 
-// Atualiza a interface da fazenda
-function updateFarmUI(state) {
-    const farmSection = document.createElement('div');
+// Atualiza o sistema de agricultura com base no calendário
+export function updateFarm(state) {
+    debugLog('Atualizando sistema de agricultura', { dayCount: state.calendar.dayCount });
+    const gameContainer = document.getElementById('game');
+    if (!gameContainer) {
+        debugLog('Erro: Contêiner #game não encontrado para fazenda');
+        notify('⚠️ Erro: Contêiner do jogo não encontrado.', 'assertive');
+        return;
+    }
+
+    const farmSection = document.createElement('section');
     farmSection.id = 'farm';
     farmSection.setAttribute('role', 'region');
     farmSection.setAttribute('aria-label', 'Fazenda');
     farmSection.innerHTML = `
         <h2>Fazenda 🌾</h2>
-        <h3>Plantas</h3>
-        <ul id="crop-list" role="list" aria-live="polite">
-            ${state.farm.crops.length > 0 ? 
-                state.farm.crops.map(crop => `
-                    <li>
-                        ${crop.type} (Progresso: ${crop.progress}%)
-                        <button onclick="harvestCrop('${crop.type}')" aria-label="Colher ${crop.type}" ${crop.progress < 100 ? 'disabled' : ''}>Colher</button>
-                    </li>
-                `).join('') : 
-                '<li>Nenhuma planta no momento. Plante algo!</li>'
-            }
-        </ul>
-        <h3>Animais</h3>
-        <ul id="animal-list" role="list" aria-live="polite">
-            ${state.farm.animals.length > 0 ? 
-                state.farm.animals.map(animal => `
-                    <li>
-                        ${animal.type} (Saúde: ${animal.health}%)
-                        <button onclick="feedAnimal('${animal.type}')" aria-label="Alimentar ${animal.type}">Alimentar</button>
-                    </li>
-                `).join('') : 
-                '<li>Nenhum animal no momento. Adquira um!</li>'
-            }
-        </ul>
-        <h3>Ferramentas</h3>
-        <p id="tools" aria-live="polite">
-            Regador: Nível <span id="watering-can">${state.farm.tools.wateringCan}</span> 💧 | 
-            Enxada: Nível <span id="hoe">${state.farm.tools.hoe}</span> 🛠️
-        </p>
-        <button onclick="plantCrop('Trigo')" aria-label="Plantar Trigo">Plantar Trigo</button>
-        <button onclick="buyAnimal('Galinha')" aria-label="Comprar Galinha">Comprar Galinha</button>
+        <p id="farm-info" aria-live="polite">Lotes plantados: ${state.farm.plots.length}</p>
+        <button onclick="plantCrop('Wheat')" aria-label="Plantar trigo">Plantar Trigo</button>
+        <button onclick="plantCrop('Corn')" aria-label="Plantar milho">Plantar Milho</button>
+        <button onclick="harvestCrops()" aria-label="Colher cultivos">Colher</button>
     `;
 
-    // Substituir ou adicionar a seção na interface
-    const existingFarmSection = document.getElementById('farm');
-    if (existingFarmSection) {
-        existingFarmSection.replaceWith(farmSection);
+    const existingSection = document.getElementById('farm');
+    if (existingSection) {
+        existingSection.replaceWith(farmSection);
+        debugLog('Seção #farm substituída');
     } else {
-        document.getElementById('game').appendChild(farmSection);
+        gameContainer.appendChild(farmSection);
+        debugLog('Seção #farm adicionada ao #game');
     }
 
-    // Verificar condições da fazenda
-    checkFarmConditions(state);
+    // Atualizar estado dos cultivos
+    updateCropGrowth(state);
+
+    // Adicionar acessibilidade
+    addAriaLabels();
+    handleKeyboardNavigation();
+
+    saveToLocalStorage(state);
 }
 
-// Verifica condições da fazenda (ex.: plantas prontas, animais famintos)
-function checkFarmConditions(state) {
-    state.farm.crops.forEach(crop => {
-        if (crop.progress >= 100) {
-            notify(`🌾 ${crop.type} está pronto para colheita!`);
-        }
-    });
-    state.farm.animals.forEach(animal => {
-        const oneDay = 24 * 60 * 60 * 1000;
-        if (Date.now() - animal.lastFed > oneDay) {
-            notify(`🐔 ${animal.type} está com fome! Alimente-o.`);
-        }
-    });
-}
-
-// Função para plantar uma cultura
+// Planta um novo cultivo
 window.plantCrop = function(cropType) {
     const state = loadFromLocalStorage();
-    if (state.locations.currentLocation !== 'Fazenda') {
-        notify('⚠️ Vá para a Fazenda para plantar.');
-        return;
-    }
-    if (state.resources.coins < 10) {
-        notify('⚠️ Você precisa de 10 moedas para plantar.');
+    debugLog('Plantando cultivo', { cropType });
+
+    if (!state.calendar) {
+        debugLog('Erro: Calendário não inicializado');
+        notify('⚠️ Erro: Calendário não inicializado.', 'assertive');
         return;
     }
 
-    state.farm.crops.push({
-        type: cropType,
-        plantedAt: Date.now(),
-        growthTime: 3 * 24 * 60 * 60 * 1000, // 3 dias em ms
-        progress: 0
+    const growthDays = cropType === 'Wheat' ? 3 : 5; // Trigo: 3 dias, Milho: 5 dias
+    state.farm.plots.push({
+        crop: cropType,
+        plantedDay: state.calendar.dayCount,
+        growthDays: growthDays
     });
-    state.resources.coins -= 10;
 
-    notify(`🌱 Você plantou ${cropType}!`);
-    updateFarmUI(state);
-    saveToLocalStorage(state);
+    state.farm.inventory.seeds[cropType] = (state.farm.inventory.seeds[cropType] || 0) - 1;
+    notify(`🌱 ${cropType} plantado! Crescimento em ${growthDays} dias.`, 'assertive');
+    debugLog('Cultivo plantado', { crop: cropType, plantedDay: state.calendar.dayCount, growthDays });
+
+    updateFarm(state);
 };
 
-// Função para colher uma cultura
-window.harvestCrop = function(cropType) {
-    const state = loadFromLocalStorage();
-    const crop = state.farm.crops.find(c => c.type === cropType && c.progress >= 100);
-    if (crop && state.locations.currentLocation === 'Fazenda') {
-        state.farm.crops = state.farm.crops.filter(c => c !== crop);
-        const yield = 10 + state.education.skills.farming / 5; // Bônus da habilidade
-        state.resources.coins += yield;
-        notify(`🌾 Você colheu ${cropType} e ganhou ${yield} moedas!`);
-        updateFarmUI(state);
-        saveToLocalStorage(state);
-    } else {
-        notify('⚠️ Vá para a Fazenda para colher ou espere a planta crescer.');
-    }
-};
+// Atualiza o crescimento dos cultivos
+function updateCropGrowth(state) {
+    debugLog('Atualizando crescimento dos cultivos', { plots: state.farm.plots });
+    const currentDay = state.calendar.dayCount;
 
-// Função para comprar um animal
-window.buyAnimal = function(animalType) {
-    const state = loadFromLocalStorage();
-    if (state.resources.coins < 50) {
-        notify('⚠️ Você precisa de 50 moedas para comprar um animal.');
-        return;
-    }
-    if (state.locations.currentLocation !== 'Fazenda') {
-        notify('⚠️ Vá para a Fazenda para comprar um animal.');
-        return;
-    }
-
-    state.farm.animals.push({
-        type: animalType,
-        health: 100,
-        lastFed: Date.now()
-    });
-    state.resources.coins -= 50;
-
-    notify(`🐔 Você comprou uma ${animalType}!`);
-    updateFarmUI(state);
-    saveToLocalStorage(state);
-};
-
-// Função para alimentar um animal
-window.feedAnimal = function(animalType) {
-    const state = loadFromLocalStorage();
-    if (state.locations.currentLocation !== 'Fazenda') {
-        notify('⚠️ Vá para a Fazenda para alimentar animais.');
-        return;
-    }
-    if (state.resources.coins < 5) {
-        notify('⚠️ Você precisa de 5 moedas para comprar ração.');
-        return;
-    }
-
-    const animal = state.farm.animals.find(a => a.type === animalType);
-    if (animal) {
-        animal.health = Math.min(100, animal.health + 20);
-        animal.lastFed = Date.now();
-        state.resources.coins -= 5;
-        notify(`🐔 Você alimentou a ${animalType}! Saúde: ${animal.health}%`);
-        updateFarmUI(state);
-        saveToLocalStorage(state);
-    }
-};
-
-// Função para atualizar o progresso da fazenda (chamada por calendar.js)
-export function updateFarmProgress(state) {
-    const now = Date.now();
-    state.farm.crops.forEach(crop => {
-        const elapsed = now - crop.plantedAt;
-        crop.progress = Math.min(100, (elapsed / crop.growthTime) * 100);
-    });
-    state.farm.animals.forEach(animal => {
-        const oneDay = 24 * 60 * 60 * 1000;
-        if (now - animal.lastFed > oneDay) {
-            animal.health = Math.max(0, animal.health - 10);
+    state.farm.plots = state.farm.plots.filter(plot => {
+        const daysPassed = currentDay - plot.plantedDay;
+        if (daysPassed >= plot.growthDays) {
+            state.farm.inventory.crops[plot.crop] = (state.farm.inventory.crops[plot.crop] || 0) + randomInt(1, 3);
+            debugLog('Cultivo maduro colhido automaticamente', { crop: plot.crop, quantity: state.farm.inventory.crops[plot.crop] });
+            return false; // Remove cultivo maduro
         }
+        return true; // Mantém cultivo em crescimento
     });
-    checkFarmConditions(state);
-    updateFarmUI(state);
+
     saveToLocalStorage(state);
 }
+
+// Colhe cultivos manualmente
+window.harvestCrops = function() {
+    const state = loadFromLocalStorage();
+    debugLog('Colhendo cultivos manualmente', { plots: state.farm.plots });
+    const currentDay = state.calendar.dayCount;
+    let harvested = 0;
+
+    state.farm.plots = state.farm.plots.filter(plot => {
+        const daysPassed = currentDay - plot.plantedDay;
+        if (daysPassed >= plot.growthDays) {
+            state.farm.inventory.crops[plot.crop] = (state.farm.inventory.crops[plot.crop] || 0) + randomInt(1, 3);
+            debugLog('Cultivo colhido', { crop: plot.crop, quantity: state.farm.inventory.crops[plot.crop] });
+            harvested++;
+            return false;
+        }
+        return true;
+    });
+
+    if (harvested > 0) {
+        notify(`🌾 Colhidos ${harvested} cultivo(s)!`, 'assertive');
+    } else {
+        notify('⚠️ Nenhum cultivo pronto para colheita.', 'assertive');
+    }
+
+    updateFarm(state);
+};
