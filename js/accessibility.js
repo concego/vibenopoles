@@ -2,29 +2,27 @@
 const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/vibenopoles';
 
 // Importações
-import { loadFromLocalStorage, saveToLocalStorage, notify } from `${BASE_PATH}/js/utils.js`;
+import { loadFromLocalStorage, saveToLocalStorage, notify, debugLog } from `${BASE_PATH}/js/utils.js`;
 
-// Inicializa o sistema de acessibilidade
+// Inicializa configurações de acessibilidade
 export function initAccessibility(state) {
-    // Garantir que o estado de acessibilidade existe
+    debugLog('Inicializando configurações de acessibilidade', { settings: state.settings });
     state.settings = state.settings || {
         highContrast: false,
-        fontSize: 'medium', // Opções: small, medium, large
-        screenReaderSupport: true
+        fontSize: 'medium',
+        screenReaderSupport: true,
+        debugMode: false
     };
 
-    // Aplicar configurações iniciais
     applyAccessibilitySettings(state);
-
-    // Adicionar listeners para navegação por teclado
-    setupKeyboardNavigation();
-
-    // Salvar estado
+    addAriaLabels();
+    handleKeyboardNavigation();
     saveToLocalStorage(state);
 }
 
 // Aplica configurações de acessibilidade
-function applyAccessibilitySettings(state) {
+export function applyAccessibilitySettings(state) {
+    debugLog('Aplicando configurações de acessibilidade', { settings: state.settings });
     const root = document.documentElement;
 
     // Modo de alto contraste
@@ -38,27 +36,33 @@ function applyAccessibilitySettings(state) {
     // Tamanho da fonte
     root.classList.remove('font-small', 'font-medium', 'font-large');
     root.classList.add(`font-${state.settings.fontSize}`);
+    notify(`🔤 Tamanho da fonte ajustado para ${state.settings.fontSize}.`, 'polite');
 
     // Suporte a leitores de tela
     if (state.settings.screenReaderSupport) {
         document.body.setAttribute('aria-hidden', 'false');
         notify('📢 Suporte a leitores de tela ativado.', 'assertive');
+    } else {
+        document.body.setAttribute('aria-hidden', 'true');
     }
+
+    // Visibilidade do log de depuração
+    updateDebugLogVisibility(state);
 }
 
-// Adiciona atributos ARIA a elementos dinâmicos
+// Adiciona atributos ARIA dinamicamente
 export function addAriaLabels() {
-    const interactiveElements = document.querySelectorAll('button, a, [role="button"]');
+    debugLog('Adicionando atributos ARIA');
+    const interactiveElements = document.querySelectorAll('button, a, [role="button"], input, select, textarea');
     interactiveElements.forEach(element => {
         if (!element.getAttribute('aria-label')) {
             const text = element.textContent.trim() || element.getAttribute('title') || 'Interagir';
             element.setAttribute('aria-label', text);
         }
-        element.setAttribute('tabindex', '0'); // Garantir foco por teclado
+        element.setAttribute('tabindex', '0');
     });
 
-    // Garantir que seções dinâmicas tenham ARIA
-    const sections = document.querySelectorAll('[role="region"]');
+    const sections = document.querySelectorAll('[role="region"], [role="log"]');
     sections.forEach(section => {
         if (!section.getAttribute('aria-label')) {
             section.setAttribute('aria-label', section.id || 'Seção do jogo');
@@ -66,8 +70,9 @@ export function addAriaLabels() {
     });
 }
 
-// Configura navegação por teclado
+// Gerencia navegação por teclado
 export function handleKeyboardNavigation() {
+    debugLog('Configurando navegação por teclado');
     document.addEventListener('keydown', (event) => {
         const focusableElements = document.querySelectorAll('button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])');
         const focusableArray = Array.from(focusableElements);
@@ -89,31 +94,50 @@ export function handleKeyboardNavigation() {
     });
 }
 
-// Função para alternar alto contraste
-window.toggleHighContrast = function() {
+// Atualiza a visibilidade do log de depuração
+function updateDebugLogVisibility(state) {
+    const debugLog = document.getElementById('debug-log');
+    if (debugLog) {
+        debugLog.style.display = state.settings.debugMode ? 'block' : 'none';
+        debugLog('Atualizando visibilidade do log de depuração', { debugMode: state.settings.debugMode });
+    }
+}
+
+// Alterna modo de alto contraste
+export function toggleHighContrast() {
     const state = loadFromLocalStorage();
     state.settings.highContrast = !state.settings.highContrast;
     applyAccessibilitySettings(state);
     saveToLocalStorage(state);
-    notify(`🖼️ Modo de alto contraste ${state.settings.highContrast ? 'ativado' : 'desativado'}.`, 'assertive');
-};
+}
 
-// Função para alterar tamanho da fonte
-window.setFontSize = function(size) {
+// Define o tamanho da fonte
+export function setFontSize(size) {
     const state = loadFromLocalStorage();
     if (['small', 'medium', 'large'].includes(size)) {
         state.settings.fontSize = size;
         applyAccessibilitySettings(state);
         saveToLocalStorage(state);
-        notify(`🔤 Tamanho da fonte alterado para ${size}.`, 'assertive');
+    } else {
+        debugLog('Tamanho de fonte inválido', { size });
+        notify('⚠️ Tamanho de fonte inválido.', 'assertive');
     }
-};
+}
 
-// Função para ativar/desativar suporte a leitores de tela
-window.toggleScreenReaderSupport = function() {
+// Alterna suporte a leitores de tela
+export function toggleScreenReaderSupport() {
     const state = loadFromLocalStorage();
     state.settings.screenReaderSupport = !state.settings.screenReaderSupport;
     applyAccessibilitySettings(state);
     saveToLocalStorage(state);
-    notify(`📢 Suporte a leitores de tela ${state.settings.screenReaderSupport ? 'ativado' : 'desativado'}.`, 'assertive');
-};
+}
+
+// Alterna modo de depuração
+export function toggleDebugMode() {
+    const state = loadFromLocalStorage();
+    state.settings.debugMode = !state.settings.debugMode;
+    applyAccessibilitySettings(state);
+    saveToLocalStorage(state);
+    // Recarregar para atualizar #debug-tools
+    window.location.reload();
+}
