@@ -3,39 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <title>Configurações - Vibenopoles</title>
     <link rel="manifest" href="/vibenopoles/manifest.json">
-    <link href="/vibenopoles/css/styles.css" rel="stylesheet">
+    <link rel="stylesheet" href="/vibenopoles/css/styles.css">
+    <meta name="description" content="Configurações do jogo Vibenopoles, com opções de acessibilidade.">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="icon" href="/vibenopoles/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/vibenopoles/icons/icon-192x192.png">
 </head>
 <body>
-    <div id="settings" role="region" aria-label="Configurações do Jogo">
-        <header>
-            <h1>Configurações</h1>
-            <a href="/vibenopoles/index.html" role="button" aria-label="Voltar ao jogo">Voltar</a>
-        </header>
-        <form id="settings-form" role="form" aria-label="Formulário de Configurações">
-            <label for="contrast">Alto Contraste:</label>
-            <input type="checkbox" id="contrast" aria-label="Ativar alto contraste">
-            <label for="sound">Sons:</label>
-            <input type="checkbox" id="sound" aria-label="Ativar sons" disabled>
-            <button type="submit" onclick="saveSettings()" aria-label="Salvar configurações">Salvar</button>
-        </form>
-        <div id="notifications" role="alert" aria-live="assertive"></div>
-    </div>
+    <header role="banner" aria-label="Cabeçalho do Vibenopoles">
+        <h1>Vibenopoles - Configurações</h1>
+        <nav aria-label="Navegação principal">
+            <a href="/vibenopoles/index.html">Jogo</a>
+            <a href="/vibenopoles/settings.html" aria-current="page">Configurações</a>
+        </nav>
+    </header>
+    <main id="settings" role="region" aria-label="Configurações do Jogo">
+        <section id="notifications" role="log" aria-live="polite"></section>
+        <section id="debug-log" role="log" aria-live="polite" style="display: none;">
+            <h2>Log de Depuração</h2>
+        </section>
+        <section id="accessibility-settings" role="region" aria-label="Configurações de Acessibilidade">
+            <h2>Configurações de Acessibilidade ⚙️</h2>
+            <form id="accessibility-form" role="form" aria-label="Formulário de configurações de acessibilidade">
+                <label for="high-contrast">Modo de Alto Contraste:</label>
+                <input type="checkbox" id="high-contrast" onchange="toggleHighContrast()" aria-label="Ativar ou desativar modo de alto contraste">
+                <label for="font-size">Tamanho da Fonte:</label>
+                <select id="font-size" onchange="setFontSize(this.value)" aria-label="Selecionar tamanho da fonte">
+                    <option value="small">Pequeno</option>
+                    <option value="medium" selected>Médio</option>
+                    <option value="large">Grande</option>
+                </select>
+                <label for="screen-reader">Suporte a Leitores de Tela:</label>
+                <input type="checkbox" id="screen-reader" onchange="toggleScreenReaderSupport()" aria-label="Ativar ou desativar suporte a leitores de tela" checked>
+                <label for="debug-mode">Modo de Depuração:</label>
+                <input type="checkbox" id="debug-mode" onchange="toggleDebugMode()" aria-label="Ativar ou desativar modo de depuração">
+            </form>
+        </section>
+    </main>
+    <footer role="contentinfo" aria-label="Rodapé">
+        <p>© 2025 Vibenopoles. Jogo acessível para todos.</p>
+    </footer>
+    <script src="/vibenopoles/js/accessibility.js" type="module"></script>
+    <script src="/vibenopoles/js/utils.js" type="module"></script>
     <script>
-        const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/vibenopoles';
+        import { initAccessibility, toggleHighContrast, setFontSize, toggleScreenReaderSupport, toggleDebugMode } from '/vibenopoles/js/accessibility.js';
+        import { loadFromLocalStorage } from '/vibenopoles/js/utils.js';
+
+        // Inicializa configurações ao carregar a página
+        document.addEventListener('DOMContentLoaded', () => {
+            const state = loadFromLocalStorage();
+            initAccessibility(state);
+
+            // Atualiza o formulário com o estado atual
+            document.getElementById('high-contrast').checked = state.settings?.highContrast || false;
+            document.getElementById('font-size').value = state.settings?.fontSize || 'medium';
+            document.getElementById('screen-reader').checked = state.settings?.screenReaderSupport !== false;
+            document.getElementById('debug-mode').checked = state.settings?.debugMode || false;
+        });
+
+        // Exporta funções para uso no HTML
+        window.toggleHighContrast = toggleHighContrast;
+        window.setFontSize = setFontSize;
+        window.toggleScreenReaderSupport = toggleScreenReaderSupport;
+        window.toggleDebugMode = toggleDebugMode;
+    </script>
+    <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register(`${BASE_PATH}/serviceWorker.js`)
-                    .then((reg) => console.log('Service Worker registrado', reg))
-                    .catch((err) => console.error('Erro ao registrar Service Worker', err));
+                navigator.serviceWorker.register('/vibenopoles/serviceWorker.js')
+                    .then(reg => console.log('Service Worker registrado:', reg))
+                    .catch(err => console.error('Erro ao registrar Service Worker:', err));
             });
         }
     </script>
-    <script src="/vibenopoles/js/settings.js"></script>
-    <script src="/vibenopoles/js/utils.js"></script>
-    <script src="/vibenopoles/js/accessibility.js"></script>
 </body>
 </html>
