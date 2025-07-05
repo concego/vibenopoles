@@ -1,11 +1,12 @@
 {
     "name": "Vibenopoles",
     "short_name": "Vibenopoles",
-    "description": "Jogo offline de simulação de vida com família, eventos, comércio e mais.",
+    "description": "Um jogo acessível de simulação com agricultura e comércio.",
     "start_url": "/vibenopoles/index.html",
     "display": "standalone",
-    "background_color": "#000000",
-    "theme_color": "#ffffff",
+    "background_color": "#f0f0f0",
+    "theme_color": "#007bff",
+    "lang": "pt-BR",
     "icons": [
         {
             "src": "/vibenopoles/icons/icon-192x192.png",
@@ -18,5 +19,7 @@
             "type": "image/png"
         }
     ],
-    "scope": "/vibenopoles/"
+    "scope": "/vibenopoles/",
+    "orientation": "portrait",
+    "prefer_related_applications": false
 }
